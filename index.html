@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>AirCast - Ultrasonic & Audible OFDM Acoustic Data Modem</title>
-<meta name="description" content="Browser-native acoustic data modem: MFSK/OFDM over Web Audio API with Hamming ECC, CRC-16, and offline classroom broadcast." />
+<title>AirCast - Hyperlocal EPA AQI Telemetry, 48h Respiratory Forecast & Acoustic Data Modem</title>
+<meta name="description" content="Real-time hyperlocal air quality, PM2.5 and PM10 particulate dispersion, ozone, and allergen telemetry dashboard with an interactive EPA AQI exposure calculator, 48-hour respiratory risk forecast, and Web Audio MFSK acoustic emergency broadcast modem." />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css" />
@@ -14,51 +14,114 @@
 <!-- Header -->
 <header class="app-header">
   <div class="brand">
-    <div class="brand-mark">A◉</div>
+    <div class="brand-mark">AC</div>
     <div>
-      <h1>Air<span>Cast</span> <span style="font-weight:400;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;margin-left:6px;">Acoustic Modem Studio</span></h1>
-      <p>Ultrasonic & Audible OFDM &bull; Web Audio DSP &bull; Hamming(7,4) ECC &bull; CRC-16-CCITT</p>
+      <h1>Air<span>Cast</span> <span style="font-weight:400;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;margin-left:6px;">EPA AQI Telemetry + Acoustic Broadcast Studio</span></h1>
+      <p>PM2.5/PM10 &amp; Ozone Dispersion &bull; EPA AQI Exposure Calculator &bull; 48h Respiratory Forecast &bull; Web Audio MFSK Modem</p>
     </div>
   </div>
   <div class="profile-switcher" id="profileSwitcher">
-    <button class="pill active" data-profile="audible">🔊 Audible Chime &nbsp;<span style="opacity:.7">1.8-4.2 kHz &middot; 10 m room</span></button>
-    <button class="pill mag" data-profile="ultrasonic">🦇 Ultrasonic Whisper &nbsp;<span style="opacity:.85">16.5-19.5 kHz &middot; imperceptible</span></button>
-    <button class="pill amb" data-profile="stress">⚡ Noisy Multipath Stress-Test &nbsp;<span style="opacity:.85">AWGN + Reverb Loopback</span></button>
+    <button class="pill active" data-profile="audible">Audible Chime &nbsp;<span style="opacity:.7">1.8-4.2 kHz &middot; 10 m room</span></button>
+    <button class="pill mag" data-profile="ultrasonic">Ultrasonic Whisper &nbsp;<span style="opacity:.85">16.5-19.5 kHz &middot; imperceptible</span></button>
+    <button class="pill amb" data-profile="stress">Noisy Multipath Stress-Test &nbsp;<span style="opacity:.85">AWGN + Reverb Loopback</span></button>
   </div>
 </header>
+
+<!-- Hyperlocal Air Quality, EPA AQI Exposure Calculator & 48h Respiratory Risk Forecast Strip -->
+<section class="panel" id="aqi-telemetry-strip" style="margin:12px 16px 0 16px;">
+  <div class="panel-head" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+    <h2><span class="dot dot-emerald"></span> Hyperlocal Air Quality, PM2.5/PM10/Ozone/Allergen Telemetry &amp; 48-Hour Respiratory Forecast</h2>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <select id="aqiStationSelect" style="background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font:12px var(--mono);"></select>
+      <button class="btn btn-primary btn-sm" id="btnBroadcastAqi">Broadcast 48h AQI Packet via Acoustic Modem</button>
+    </div>
+  </div>
+  <div class="panel-body" style="display:grid;grid-template-columns:1.1fr 1.1fr 1.3fr;gap:14px;align-items:start;">
+    <div>
+      <div class="field-label">Station Pollutant Telemetry</div>
+      <div class="kv-grid">
+        <dt>Composite AQI</dt><dd id="aqiCompositeVal"> - </dd>
+        <dt>PM2.5 Dispersion</dt><dd id="aqiPm25Val"> - </dd>
+        <dt>PM10 Dispersion</dt><dd id="aqiPm10Val"> - </dd>
+        <dt>Ozone (8h O3)</dt><dd id="aqiO3Val"> - </dd>
+        <dt>Allergen Index</dt><dd id="aqiAllergenVal"> - </dd>
+        <dt>48h Peak Risk</dt><dd id="aqiPeak48Val"> - </dd>
+      </div>
+      <div id="aqiGuidanceText" style="margin-top:8px;font-size:12px;color:var(--text-muted);"></div>
+    </div>
+
+    <div>
+      <div class="field-label">Interactive EPA AQI Exposure Calculator</div>
+      <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px;font-size:12px;">
+        <label style="display:flex;justify-content:space-between;align-items:center;">
+          <span>Outdoor Duration: <b id="expHoursLabel">2.0h</b></span>
+          <input type="range" id="expHours" min="0.5" max="12" step="0.5" value="2" style="width:130px;" />
+        </label>
+        <label style="display:flex;justify-content:space-between;align-items:center;">
+          <span>Activity Ventilation</span>
+          <select id="expActivity" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font:11px var(--mono);">
+            <option value="0.6">Resting (0.6 m3/h)</option>
+            <option value="1.8" selected>Moderate Walk (1.8 m3/h)</option>
+            <option value="3.6">Athletic Exertion (3.6 m3/h)</option>
+          </select>
+        </label>
+        <label style="display:flex;justify-content:space-between;align-items:center;">
+          <span>Mitigation / Filtration</span>
+          <select id="expMask" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font:11px var(--mono);">
+            <option value="1.0" selected>Unfiltered Outdoor (100%)</option>
+            <option value="0.45">Surgical / Cloth (45%)</option>
+            <option value="0.10">NIOSH N95 / Indoors HEPA (10%)</option>
+          </select>
+        </label>
+        <div style="border-top:1px solid var(--border);padding-top:6px;display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;">
+          <span>Inhaled Dose:</span>
+          <b id="expDoseVal" style="color:var(--cyan);"> - </b>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="field-label">48-Hour Respiratory Risk &amp; AQI Trajectory</div>
+      <div class="canvas-wrap" style="height:130px;">
+        <span class="canvas-label">48h Hourly AQI Forecast</span>
+        <canvas id="aqiForecastCanvas" height="130"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- Preset bar -->
 <div class="preset-bar">
   <label>Preset payloads</label>
-  <button class="chip active" data-preset="quiz">🧪 STEM Physics Quiz - EN/ES/HI + LaTeX</button>
-  <button class="chip" data-preset="beacon">🚨 Emergency Mesh Beacon - GPS + Triage</button>
-  <button class="chip" data-preset="token">🔐 Micro-Credential Token - Hamming ECC</button>
+  <button class="chip active" data-preset="quiz">STEM Physics Quiz - EN/ES/HI + LaTeX</button>
+  <button class="chip" data-preset="beacon">Emergency Mesh Beacon - GPS + Triage</button>
+  <button class="chip" data-preset="token">Micro-Credential Token - Hamming ECC</button>
   <span style="margin-left:auto;font:11px var(--mono);color:var(--text-dim);" id="profileHint">Profile: Audible Classroom Chime</span>
 </div>
 
 <!-- 3-column studio -->
 <main class="studio">
 
-  <!-- ═══════ LEFT: Framing & Modulator ═══════ -->
+  <!-- LEFT: Framing & Modulator -->
   <section class="panel" id="panel-left">
     <div class="panel-head">
-      <h2><span class="dot dot-cyan"></span> 1 &mdash; Packet Framing, ECC & Modulator</h2>
+      <h2><span class="dot dot-cyan"></span> 1 - Packet Framing, ECC &amp; Modulator</h2>
       <span class="badge badge-idle" id="frameBadge">Idle</span>
     </div>
     <div class="panel-body">
 
       <div>
         <div class="field-label">Payload composer <span class="hint" id="payloadBytesHint">0 bytes</span></div>
-        <textarea class="payload-input" id="payloadInput" placeholder="Type or paste text / JSON…"></textarea>
+        <textarea class="payload-input" id="payloadInput" placeholder="Type or paste text / JSON..."></textarea>
       </div>
 
       <div>
         <div class="field-label">Framing inspector</div>
         <div class="frame-diagram" id="frameDiagram">
-          <div class="frame-seg pre"><b>AA 55</b><span>Preamble Chirp</span></div><div class="frame-arrow">→</div>
-          <div class="frame-seg"><b id="segLen">00 00</b><span>Length 2 B</span></div><div class="frame-arrow">→</div>
-          <div class="frame-seg" style="flex:2"><b id="segPayload"> - </b><span>UTF-8 Payload</span></div><div class="frame-arrow">→</div>
-          <div class="frame-seg"><b>H(7,4)</b><span>FEC Parity</span></div><div class="frame-arrow">→</div>
+          <div class="frame-seg pre"><b>AA 55</b><span>Preamble Chirp</span></div><div class="frame-arrow">-&gt;</div>
+          <div class="frame-seg"><b id="segLen">00 00</b><span>Length 2 B</span></div><div class="frame-arrow">-&gt;</div>
+          <div class="frame-seg" style="flex:2"><b id="segPayload"> - </b><span>UTF-8 Payload</span></div><div class="frame-arrow">-&gt;</div>
+          <div class="frame-seg"><b>H(7,4)</b><span>FEC Parity</span></div><div class="frame-arrow">-&gt;</div>
           <div class="frame-seg crc"><b id="segCrc"> - </b><span>CRC-16-CCITT</span></div>
         </div>
       </div>
@@ -90,23 +153,23 @@
     </div>
   </section>
 
-  <!-- ═══════ CENTER: Synthesizer & Visualizers ═══════ -->
+  <!-- CENTER: Synthesizer & Visualizers -->
   <section class="panel" id="panel-center">
     <div class="panel-head">
-      <h2><span class="dot dot-amber"></span> 2 &mdash; Web Audio Synthesizer & Spectrogram</h2>
+      <h2><span class="dot dot-amber"></span> 2 - Web Audio Synthesizer &amp; Spectrogram</h2>
       <span class="badge badge-idle" id="txBadge">Ready</span>
     </div>
     <div class="panel-body">
 
       <div class="btn-row">
-        <button class="btn btn-primary" id="btnTransmit">▶ Transmit over Speakers</button>
-        <button class="btn btn-ghost" id="btnStopTx" disabled>■ Stop</button>
-        <button class="btn btn-ghost" id="btnWav">⬇ Export WAV</button>
+        <button class="btn btn-primary" id="btnTransmit">Transmit over Speakers</button>
+        <button class="btn btn-ghost" id="btnStopTx" disabled>Stop</button>
+        <button class="btn btn-ghost" id="btnWav">Export WAV</button>
       </div>
 
       <div class="btn-row">
-        <button class="btn btn-magenta" id="btnListen">🎙 Listen via Microphone</button>
-        <button class="btn btn-amber" id="btnLoopback">🔁 Acoustic Loopback Simulation</button>
+        <button class="btn btn-magenta" id="btnListen">Listen via Microphone</button>
+        <button class="btn btn-amber" id="btnLoopback">Acoustic Loopback Simulation</button>
       </div>
 
       <!-- Channel controls (visible for stress-test) -->
@@ -153,10 +216,10 @@
     </div>
   </section>
 
-  <!-- ═══════ RIGHT: Demodulator & Receiver ═══════ -->
+  <!-- RIGHT: Demodulator & Receiver -->
   <section class="panel" id="panel-right">
     <div class="panel-head">
-      <h2><span class="dot dot-emerald"></span> 3 &mdash; Demodulator & Classroom Receiver</h2>
+      <h2><span class="dot dot-emerald"></span> 3 - Demodulator &amp; Classroom Receiver</h2>
       <span class="badge badge-idle" id="rxBadge">Awaiting signal</span>
     </div>
     <div class="panel-body">
@@ -200,7 +263,7 @@
 </main>
 
 <footer class="app-footer">
-  <span>AirCast &bull; Zero-dependency Web Audio DSP &bull; 44.1/48 kHz PCM &bull; Raised-cosine MFSK &bull; Goertzel demod &bull; CRC-16-CCITT</span>
+  <span>AirCast &bull; EPA AQI Telemetry &amp; 48h Forecast &bull; Web Audio DSP &bull; 44.1/48 kHz PCM &bull; Raised-cosine MFSK &bull; Goertzel demod &bull; CRC-16-CCITT</span>
   <span style="display:flex;gap:10px;align-items:center;">
     <a href="#" id="footerSelfTest">Run self-test</a>
     <span id="footerStatus" style="color:var(--text-muted)"></span>
@@ -212,5 +275,6 @@
 <script src="js/modem-dsp.js"></script>
 <script src="js/spectrogram.js"></script>
 <script src="js/app.js"></script>
+<script src="js/aqi-telemetry.js"></script>
 </body>
 </html>
