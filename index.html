@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AirCast — Ultrasonic & Audible OFDM Acoustic Data Modem</title>
+<meta name="description" content="Browser-native acoustic data modem: MFSK/OFDM over Web Audio API with Hamming ECC, CRC-16, and offline classroom broadcast." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- Header -->
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-mark">A◉</div>
+    <div>
+      <h1>Air<span>Cast</span> <span style="font-weight:400;color:var(--text-muted);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;margin-left:6px;">Acoustic Modem Studio</span></h1>
+      <p>Ultrasonic & Audible OFDM &bull; Web Audio DSP &bull; Hamming(7,4) ECC &bull; CRC-16-CCITT</p>
+    </div>
+  </div>
+  <div class="profile-switcher" id="profileSwitcher">
+    <button class="pill active" data-profile="audible">🔊 Audible Chime &nbsp;<span style="opacity:.7">1.8–4.2 kHz &middot; 10 m room</span></button>
+    <button class="pill mag" data-profile="ultrasonic">🦇 Ultrasonic Whisper &nbsp;<span style="opacity:.85">16.5–19.5 kHz &middot; imperceptible</span></button>
+    <button class="pill amb" data-profile="stress">⚡ Noisy Multipath Stress-Test &nbsp;<span style="opacity:.85">AWGN + Reverb Loopback</span></button>
+  </div>
+</header>
+
+<!-- Preset bar -->
+<div class="preset-bar">
+  <label>Preset payloads</label>
+  <button class="chip active" data-preset="quiz">🧪 STEM Physics Quiz — EN/ES/HI + LaTeX</button>
+  <button class="chip" data-preset="beacon">🚨 Emergency Mesh Beacon — GPS + Triage</button>
+  <button class="chip" data-preset="token">🔐 Micro-Credential Token — Hamming ECC</button>
+  <span style="margin-left:auto;font:11px var(--mono);color:var(--text-dim);" id="profileHint">Profile: Audible Classroom Chime</span>
+</div>
+
+<!-- 3-column studio -->
+<main class="studio">
+
+  <!-- ═══════ LEFT: Framing & Modulator ═══════ -->
+  <section class="panel" id="panel-left">
+    <div class="panel-head">
+      <h2><span class="dot dot-cyan"></span> 1 &mdash; Packet Framing, ECC & Modulator</h2>
+      <span class="badge badge-idle" id="frameBadge">Idle</span>
+    </div>
+    <div class="panel-body">
+
+      <div>
+        <div class="field-label">Payload composer <span class="hint" id="payloadBytesHint">0 bytes</span></div>
+        <textarea class="payload-input" id="payloadInput" placeholder="Type or paste text / JSON…"></textarea>
+      </div>
+
+      <div>
+        <div class="field-label">Framing inspector</div>
+        <div class="frame-diagram" id="frameDiagram">
+          <div class="frame-seg pre"><b>AA 55</b><span>Preamble Chirp</span></div><div class="frame-arrow">→</div>
+          <div class="frame-seg"><b id="segLen">00 00</b><span>Length 2 B</span></div><div class="frame-arrow">→</div>
+          <div class="frame-seg" style="flex:2"><b id="segPayload">—</b><span>UTF-8 Payload</span></div><div class="frame-arrow">→</div>
+          <div class="frame-seg"><b>H(7,4)</b><span>FEC Parity</span></div><div class="frame-arrow">→</div>
+          <div class="frame-seg crc"><b id="segCrc">—</b><span>CRC-16-CCITT</span></div>
+        </div>
+      </div>
+
+      <div class="kv-grid" id="kvGrid">
+        <dt>Frame size</dt><dd id="kvFrameSize">—</dd>
+        <dt>Encoded payload</dt><dd id="kvEncSize">—</dd>
+        <dt>Duration</dt><dd id="kvDuration">—</dd>
+        <dt>Bitrate</dt><dd id="kvBitrate">—</dd>
+        <dt>Carriers</dt><dd id="kvCarriers">—</dd>
+        <dt>Symbol time</dt><dd id="kvBaud">—</dd>
+      </div>
+
+      <div>
+        <div class="field-label">Hex dump <span class="hint">full frame bytes</span></div>
+        <div class="mono-box" id="hexDump">—</div>
+      </div>
+
+      <div>
+        <div class="field-label">Bit-stream <span class="hint">MSB-first</span></div>
+        <div class="mono-box small" id="bitStream">—</div>
+      </div>
+
+      <div>
+        <div class="field-label">Symbol table <span class="hint">4-FSK &middot; 2 bits / symbol</span></div>
+        <div class="mono-box small" id="symbolTable">—</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════ CENTER: Synthesizer & Visualizers ═══════ -->
+  <section class="panel" id="panel-center">
+    <div class="panel-head">
+      <h2><span class="dot dot-amber"></span> 2 &mdash; Web Audio Synthesizer & Spectrogram</h2>
+      <span class="badge badge-idle" id="txBadge">Ready</span>
+    </div>
+    <div class="panel-body">
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnTransmit">▶ Transmit over Speakers</button>
+        <button class="btn btn-ghost" id="btnStopTx" disabled>■ Stop</button>
+        <button class="btn btn-ghost" id="btnWav">⬇ Export WAV</button>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-magenta" id="btnListen">🎙 Listen via Microphone</button>
+        <button class="btn btn-amber" id="btnLoopback">🔁 Acoustic Loopback Simulation</button>
+      </div>
+
+      <!-- Channel controls (visible for stress-test) -->
+      <div id="channelControls" style="display:none;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;gap:10px;flex-direction:column;">
+        <div class="ctrl-row">
+          <label>SNR
+            <input type="range" id="snrSlider" min="-5" max="25" step="1" value="12" style="width:140px">
+            <span class="ctrl-val" id="snrVal">12 dB</span>
+          </label>
+          <label style="margin-left:12px">Echo delay
+            <input type="range" id="echoDelay" min="0" max="80" step="5" value="18" style="width:110px">
+            <span class="ctrl-val" id="echoDelayVal">18 ms</span>
+          </label>
+          <label>Echo atten
+            <input type="range" id="echoAtten" min="0" max="0.6" step="0.05" value="0.25" style="width:100px">
+            <span class="ctrl-val" id="echoAttenVal">0.25</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Oscilloscope -->
+      <div class="canvas-wrap" style="height:150px;">
+        <span class="canvas-label">Time-domain oscilloscope</span>
+        <canvas id="scopeCanvas" height="150"></canvas>
+      </div>
+
+      <!-- Waterfall -->
+      <div class="canvas-wrap" style="height:200px;">
+        <span class="canvas-label">FFT waterfall spectrogram</span>
+        <canvas id="waterfallCanvas" height="200"></canvas>
+      </div>
+
+      <!-- BER chart -->
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div class="field-label" style="margin:0;">BER sweep — Uncoded vs Hamming(7,4) frame recovery</div>
+        <button class="btn btn-ghost btn-sm" id="btnBerSweep">Run 50-trial SNR Sweep</button>
+      </div>
+      <div class="canvas-wrap" style="height:200px;">
+        <span class="canvas-label">Frame success rate vs SNR</span>
+        <canvas id="berCanvas" height="200"></canvas>
+      </div>
+      <div id="berStatus" style="font:11px var(--mono);color:var(--text-muted);min-height:16px;"></div>
+
+    </div>
+  </section>
+
+  <!-- ═══════ RIGHT: Demodulator & Receiver ═══════ -->
+  <section class="panel" id="panel-right">
+    <div class="panel-head">
+      <h2><span class="dot dot-emerald"></span> 3 &mdash; Demodulator & Classroom Receiver</h2>
+      <span class="badge badge-idle" id="rxBadge">Awaiting signal</span>
+    </div>
+    <div class="panel-body">
+
+      <div class="kv-grid">
+        <dt>Symbol lock</dt><dd id="kvLock">—</dd>
+        <dt>SNR est.</dt><dd id="kvSnrEst">—</dd>
+        <dt>CRC-16</dt><dd id="kvCrcCheck">—</dd>
+        <dt>Corrections</dt><dd id="kvCorrections">—</dd>
+      </div>
+
+      <div>
+        <div class="field-label">Raw received bits <span class="hint">green = Hamming-corrected</span></div>
+        <div class="mono-box small" id="rxBits">—</div>
+        <div id="rxBitViz" style="margin-top:6px;"></div>
+      </div>
+
+      <div>
+        <div class="field-label">Hamming(7,4) correction log</div>
+        <div class="mono-box small" id="correctionLog" style="min-height:44px;">No errors — clean channel.</div>
+      </div>
+
+      <!-- Classroom card -->
+      <div class="recv-card" id="classroomCard">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <h3 id="cardTitle">Classroom Receiver</h3>
+          <span class="badge badge-idle" id="cardBadge">No packet</span>
+        </div>
+        <div class="lang-tabs" id="langTabs">
+          <button class="lang-tab active" data-lang="en">EN</button>
+          <button class="lang-tab" data-lang="es">ES</button>
+          <button class="lang-tab" data-lang="hi">HI</button>
+        </div>
+        <div id="cardBody"><p>Transmit or run loopback to decode a classroom packet. Preset quiz payloads include interactive questions rendered here.</p></div>
+        <div id="cardQuiz"></div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<footer class="app-footer">
+  <span>AirCast &bull; Zero-dependency Web Audio DSP &bull; 44.1/48 kHz PCM &bull; Raised-cosine MFSK &bull; Goertzel demod &bull; CRC-16-CCITT</span>
+  <span style="display:flex;gap:10px;align-items:center;">
+    <a href="#" id="footerSelfTest">Run self-test</a>
+    <span id="footerStatus" style="color:var(--text-muted)"></span>
+  </span>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/modem-dsp.js"></script>
+<script src="js/spectrogram.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
