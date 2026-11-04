@@ -1,5 +1,5 @@
 /**
- * AirCast — app.js
+ * AirCast - app.js
  * UI controller: packet encoding, Web Audio TX/RX, loopback, WAV export,
  * classroom card, BER sweep, and live visualizers.
  */
@@ -28,7 +28,7 @@
   const PRESETS = {
     quiz: JSON.stringify({
       type: "quiz",
-      title: { en: "Newton's Laws — Quick Check", es: "Leyes de Newton — Evaluación", hi: "न्यूटन के नियम — त्वरित जाँच" },
+      title: { en: "Newton's Laws - Quick Check", es: "Leyes de Newton - Evaluación", hi: "न्यूटन के नियम - त्वरित जाँच" },
       question: {
         en: "A 5 kg block accelerates at 3 m/s². What is the net force?  F = m·a",
         es: "Un bloque de 5 kg acelera a 3 m/s². ¿Cuál es la fuerza neta?  F = m·a",
@@ -48,7 +48,7 @@
       type: "beacon",
       id: "BEACON-0427",
       gps: { lat: 28.6139, lon: 77.2090, alt_m: 216 },
-      triage: "YELLOW — ambulatory, laceration left arm",
+      triage: "YELLOW - ambulatory, laceration left arm",
       message: { en: "Need bandages + water at north gate", es: "Necesito vendas + agua en puerta norte", hi: "उत्तरी गेट पर पट्टियाँ + पानी चाहिए" },
       ts: "2026-11-03T14:30:00Z",
       ttl_hops: 4
@@ -58,9 +58,9 @@
       type: "credential",
       issuer: "AirCast Academy",
       recipient: "student@aircast.demo",
-      badge: "Acoustic Modem — Level 1",
+      badge: "Acoustic Modem - Level 1",
       issued: "2026-11-03",
-      proof: "HMAC-SHA256 placeholder — replace with real sig in prod",
+      proof: "HMAC-SHA256 placeholder - replace with real sig in prod",
       ecc: "Hamming(7,4) protected payload"
     }, null, 2),
   };
@@ -88,7 +88,7 @@
   function setProfile(id) {
     profileId = id;
     $$('#profileSwitcher .pill').forEach(b => b.classList.toggle('active', b.dataset.profile === id));
-    const labels = { audible: 'Audible Classroom Chime (1.8–4.2 kHz)', ultrasonic: 'Near-Ultrasonic Whisper (16.5–19.5 kHz)', stress: 'Noisy Multipath Stress-Test' };
+    const labels = { audible: 'Audible Classroom Chime (1.8-4.2 kHz)', ultrasonic: 'Near-Ultrasonic Whisper (16.5-19.5 kHz)', stress: 'Noisy Multipath Stress-Test' };
     $('#profileHint').textContent = 'Profile: ' + (labels[id] || id);
     const cc = $('#channelControls');
     cc.style.display = (id === 'stress') ? 'flex' : 'none';
@@ -274,7 +274,7 @@
       listenRaf = requestAnimationFrame(loop);
     }
     listenRaf = requestAnimationFrame(loop);
-    toast('Listening via microphone — waterfall is live');
+    toast('Listening via microphone - waterfall is live');
   }
 
   function stopListening() {
@@ -324,7 +324,7 @@
     $('#kvLock').innerHTML = lockOk
       ? `<span style="color:var(--emerald)">● LOCK</span> · ${result.numSymbols} symbols`
       : `<span style="color:var(--amber)">○ SEARCH</span>`;
-    $('#kvSnrEst').textContent = (isFinite(estSnr) ? estSnr.toFixed(1) : '—') + ' dB' + (injectedSnr != null ? ` (injected ${injectedSnr} dB)` : '');
+    $('#kvSnrEst').textContent = (isFinite(estSnr) ? estSnr.toFixed(1) : ' - ') + ' dB' + (injectedSnr != null ? ` (injected ${injectedSnr} dB)` : '');
     if (p) {
       $('#kvCrcCheck').innerHTML = p.ok
         ? `<span style="color:var(--emerald)">✓ PASS</span> <span style="color:var(--text-muted)">0x${p.calcCrc.toString(16).padStart(4, '0').toUpperCase()}</span>`
@@ -332,7 +332,7 @@
       const n = p.corrections ? p.corrections.length : 0;
       $('#kvCorrections').innerHTML = n > 0
         ? `<span style="color:var(--emerald)">${n} single-bit error(s) corrected ✓</span>`
-        : (p.ok ? `<span style="color:var(--text-muted)">0 — clean</span>` : `<span style="color:var(--amber)">0 (uncorrectable)</span>`);
+        : (p.ok ? `<span style="color:var(--text-muted)">0 - clean</span>` : `<span style="color:var(--amber)">0 (uncorrectable)</span>`);
     }
 
     $('#rxBadge').textContent = p && p.ok ? 'Decoded ✓' : (p ? 'CRC FAIL' : 'No frame');
@@ -351,20 +351,20 @@
     }).join('');
     if (bits.length > 400) bitHtml += `<span style="font:11px var(--mono);color:var(--text-dim);margin-left:6px;">+${bits.length - 400} bits</span>`;
     $('#rxBitViz').innerHTML = `<div class="bit-row">${bitHtml}</div>`;
-    $('#rxBits').textContent = bits.slice(0, 600).join('') + (bits.length > 600 ? ' …' : '') || '—';
+    $('#rxBits').textContent = bits.slice(0, 600).join('') + (bits.length > 600 ? ' …' : '') || ' - ';
 
     // Correction log
     if (p && p.corrections && p.corrections.length) {
       $('#correctionLog').innerHTML = p.corrections.map(c =>
-        `<span style="color:var(--emerald)">✔ Byte ${c.byteIdx} nibble ${c.nibble} — bit ${c.errorPos} flipped (syndrome corrected)</span>`
+        `<span style="color:var(--emerald)">✔ Byte ${c.byteIdx} nibble ${c.nibble} - bit ${c.errorPos} flipped (syndrome corrected)</span>`
       ).join('<br>');
     } else if (p && !p.ok) {
-      $('#correctionLog').innerHTML = `<span style="color:#f87171">Uncorrectable errors — frame failed CRC. Try higher SNR.</span>`;
+      $('#correctionLog').innerHTML = `<span style="color:#f87171">Uncorrectable errors - frame failed CRC. Try higher SNR.</span>`;
     } else {
-      $('#correctionLog').textContent = 'No errors — clean channel.';
+      $('#correctionLog').textContent = 'No errors - clean channel.';
     }
 
-    // Classroom card — try to parse JSON
+    // Classroom card - try to parse JSON
     renderClassroomCard(result.payloadStr, p && p.ok);
   }
 
@@ -416,16 +416,16 @@
         });
       });
     } else if (obj.type === 'beacon') {
-      $('#cardTitle').textContent = '🚨 Emergency Beacon — ' + escHtml(obj.id || '');
+      $('#cardTitle').textContent = '🚨 Emergency Beacon - ' + escHtml(obj.id || '');
       $('#cardBadge').textContent = 'Beacon ✓';
       $('#cardBadge').className = 'badge badge-ok';
       const msg = obj.message ? getLocalized(obj.message) : '';
       $('#cardBody').innerHTML = `
         <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font:11px var(--mono);">
-          <span style="color:var(--text-muted)">GPS</span><span>${obj.gps ? obj.gps.lat + ', ' + obj.gps.lon + ' · ' + obj.gps.alt_m + ' m' : '—'}</span>
-          <span style="color:var(--text-muted)">Triage</span><span style="color:var(--amber);font-weight:700;">${escHtml(obj.triage || '—')}</span>
-          <span style="color:var(--text-muted)">TTL</span><span>${obj.ttl_hops ?? '—'} hops</span>
-          <span style="color:var(--text-muted)">Time</span><span>${escHtml(obj.ts || '—')}</span>
+          <span style="color:var(--text-muted)">GPS</span><span>${obj.gps ? obj.gps.lat + ', ' + obj.gps.lon + ' · ' + obj.gps.alt_m + ' m' : ' - '}</span>
+          <span style="color:var(--text-muted)">Triage</span><span style="color:var(--amber);font-weight:700;">${escHtml(obj.triage || ' - ')}</span>
+          <span style="color:var(--text-muted)">TTL</span><span>${obj.ttl_hops ?? ' - '} hops</span>
+          <span style="color:var(--text-muted)">Time</span><span>${escHtml(obj.ts || ' - ')}</span>
         </div>
         ${msg ? `<p style="margin-top:8px;color:var(--text);">“${escHtml(msg)}”</p>` : ''}
       `;
@@ -436,10 +436,10 @@
       $('#cardBadge').className = 'badge badge-ok';
       $('#cardBody').innerHTML = `
         <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font:11px var(--mono);">
-          <span style="color:var(--text-muted)">Issuer</span><span>${escHtml(obj.issuer || '—')}</span>
-          <span style="color:var(--text-muted)">Recipient</span><span>${escHtml(obj.recipient || '—')}</span>
-          <span style="color:var(--text-muted)">Issued</span><span>${escHtml(obj.issued || '—')}</span>
-          <span style="color:var(--text-muted)">ECC</span><span style="color:var(--emerald)">${escHtml(obj.ecc || '—')}</span>
+          <span style="color:var(--text-muted)">Issuer</span><span>${escHtml(obj.issuer || ' - ')}</span>
+          <span style="color:var(--text-muted)">Recipient</span><span>${escHtml(obj.recipient || ' - ')}</span>
+          <span style="color:var(--text-muted)">Issued</span><span>${escHtml(obj.issued || ' - ')}</span>
+          <span style="color:var(--text-muted)">ECC</span><span style="color:var(--emerald)">${escHtml(obj.ecc || ' - ')}</span>
         </div>
         ${obj.proof ? `<p style="margin-top:8px;font:10px var(--mono);color:var(--text-dim);word-break:break-all;">${escHtml(obj.proof)}</p>` : ''}
       `;
@@ -482,7 +482,7 @@
     });
 
     berChart.setData(results);
-    $('#berStatus').textContent = `Done — ${snrPoints.length} points × ${trialsPerPoint} trials. Green = Hamming(7,4) ECC, amber = uncoded baseline.`;
+    $('#berStatus').textContent = `Done - ${snrPoints.length} points × ${trialsPerPoint} trials. Green = Hamming(7,4) ECC, amber = uncoded baseline.`;
     btn.disabled = false; btn.textContent = 'Run 50-trial SNR Sweep';
     toast('BER sweep complete');
   }

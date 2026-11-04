@@ -1,5 +1,5 @@
 /**
- * AirCast — spectrogram.js
+ * AirCast - spectrogram.js
  * Dual-canvas renderer: oscilloscope (time-domain) + waterfall spectrogram + BER chart.
  * Exports window.AirCastViz
  */
@@ -72,12 +72,12 @@
         ctx.fillStyle = 'rgba(255,255,255,0.18)';
         ctx.font = '11px JetBrains Mono, monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('— idle —  transmit or run loopback to see waveform', W / 2, H / 2 + 4);
+        ctx.fillText(' -  idle -  transmit or run loopback to see waveform', W / 2, H / 2 + 4);
         ctx.restore();
         return;
       }
 
-      // Draw waveform — downsample to screen width
+      // Draw waveform - downsample to screen width
       const pcm = this.pcm;
       const step = Math.max(1, Math.floor(pcm.length / W / 1.2));
 
@@ -158,7 +158,7 @@
       const nyquist = sr / 2;
       for (let f = 0; f < numFrames && this.rows.length < this.maxRows; f++) {
         const off = f * hop;
-        // Window + DFT (naïve for 256 bins — fine for ~200 frames)
+        // Window + DFT (naïve for 256 bins - fine for ~200 frames)
         const mags = new Float32Array(this.numBins);
         // Apply Hann window and compute DFT magnitude per bin
         // Optimized: only compute up to nyquist
@@ -210,7 +210,7 @@
         ctx.fillStyle = 'rgba(255,255,255,0.18)';
         ctx.font = '11px JetBrains Mono, monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('— waterfall —  awaiting signal', W / 2, H / 2 + 4);
+        ctx.fillText(' -  waterfall -  awaiting signal', W / 2, H / 2 + 4);
         ctx.restore();
         return;
       }

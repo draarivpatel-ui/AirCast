@@ -1,7 +1,7 @@
 /**
- * AirCast — modem-dsp.js
+ * AirCast - modem-dsp.js
  * ============================================================
- * Pure Web-Audio DSP engine — zero dependencies.
+ * Pure Web-Audio DSP engine - zero dependencies.
  * Exports on window.AirCastDSP.
  *
  * • CRC-16-CCITT (poly 0x1021, init 0xFFFF)
@@ -34,7 +34,7 @@
     return crc & 0xFFFF;
   }
 
-  // ── Hamming(7,4) — systematic code ───────────────────────
+  // ── Hamming(7,4) - systematic code ───────────────────────
   // Generator matrix G = [I4 | P] and parity-check H = [P^T | I3]
   // Positions: [d0 d1 d2 d3 | p0 p1 p2]  →  codeword b0..b6
   // Parity equations (even parity):
@@ -105,7 +105,7 @@
   /**
    * Build framed packet bytes:
    * [0xAA 0x55] [lenHi lenLo] [hamming(payload)] [crcHi crcLo]
-   * CRC is over [lenHi lenLo | hamming(payload)] — preamble excluded.
+   * CRC is over [lenHi lenLo | hamming(payload)] - preamble excluded.
    */
   function buildFrame(payloadBytes) {
     const encoded = hammingEncode(payloadBytes);
@@ -416,7 +416,7 @@
         const noisy = addAWGN(synth.pcm, snrDb);
         const res = demodulate(noisy, profile);
         if (res.parsed.ok) codedOk++;
-        // Uncoded baseline: flip ~BER from AWGN — approximate by checking
+        // Uncoded baseline: flip ~BER from AWGN - approximate by checking
         // raw bit errors vs Hamming correction
         // For display we use a theoretical uncoded curve blended with measurement
         // Here we count uncoded success as: no bit errors at all (stricter)

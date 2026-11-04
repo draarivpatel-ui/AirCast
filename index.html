@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>AirCast — Ultrasonic & Audible OFDM Acoustic Data Modem</title>
+<title>AirCast - Ultrasonic & Audible OFDM Acoustic Data Modem</title>
 <meta name="description" content="Browser-native acoustic data modem: MFSK/OFDM over Web Audio API with Hamming ECC, CRC-16, and offline classroom broadcast." />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
@@ -21,8 +21,8 @@
     </div>
   </div>
   <div class="profile-switcher" id="profileSwitcher">
-    <button class="pill active" data-profile="audible">🔊 Audible Chime &nbsp;<span style="opacity:.7">1.8–4.2 kHz &middot; 10 m room</span></button>
-    <button class="pill mag" data-profile="ultrasonic">🦇 Ultrasonic Whisper &nbsp;<span style="opacity:.85">16.5–19.5 kHz &middot; imperceptible</span></button>
+    <button class="pill active" data-profile="audible">🔊 Audible Chime &nbsp;<span style="opacity:.7">1.8-4.2 kHz &middot; 10 m room</span></button>
+    <button class="pill mag" data-profile="ultrasonic">🦇 Ultrasonic Whisper &nbsp;<span style="opacity:.85">16.5-19.5 kHz &middot; imperceptible</span></button>
     <button class="pill amb" data-profile="stress">⚡ Noisy Multipath Stress-Test &nbsp;<span style="opacity:.85">AWGN + Reverb Loopback</span></button>
   </div>
 </header>
@@ -30,9 +30,9 @@
 <!-- Preset bar -->
 <div class="preset-bar">
   <label>Preset payloads</label>
-  <button class="chip active" data-preset="quiz">🧪 STEM Physics Quiz — EN/ES/HI + LaTeX</button>
-  <button class="chip" data-preset="beacon">🚨 Emergency Mesh Beacon — GPS + Triage</button>
-  <button class="chip" data-preset="token">🔐 Micro-Credential Token — Hamming ECC</button>
+  <button class="chip active" data-preset="quiz">🧪 STEM Physics Quiz - EN/ES/HI + LaTeX</button>
+  <button class="chip" data-preset="beacon">🚨 Emergency Mesh Beacon - GPS + Triage</button>
+  <button class="chip" data-preset="token">🔐 Micro-Credential Token - Hamming ECC</button>
   <span style="margin-left:auto;font:11px var(--mono);color:var(--text-dim);" id="profileHint">Profile: Audible Classroom Chime</span>
 </div>
 
@@ -57,34 +57,34 @@
         <div class="frame-diagram" id="frameDiagram">
           <div class="frame-seg pre"><b>AA 55</b><span>Preamble Chirp</span></div><div class="frame-arrow">→</div>
           <div class="frame-seg"><b id="segLen">00 00</b><span>Length 2 B</span></div><div class="frame-arrow">→</div>
-          <div class="frame-seg" style="flex:2"><b id="segPayload">—</b><span>UTF-8 Payload</span></div><div class="frame-arrow">→</div>
+          <div class="frame-seg" style="flex:2"><b id="segPayload"> - </b><span>UTF-8 Payload</span></div><div class="frame-arrow">→</div>
           <div class="frame-seg"><b>H(7,4)</b><span>FEC Parity</span></div><div class="frame-arrow">→</div>
-          <div class="frame-seg crc"><b id="segCrc">—</b><span>CRC-16-CCITT</span></div>
+          <div class="frame-seg crc"><b id="segCrc"> - </b><span>CRC-16-CCITT</span></div>
         </div>
       </div>
 
       <div class="kv-grid" id="kvGrid">
-        <dt>Frame size</dt><dd id="kvFrameSize">—</dd>
-        <dt>Encoded payload</dt><dd id="kvEncSize">—</dd>
-        <dt>Duration</dt><dd id="kvDuration">—</dd>
-        <dt>Bitrate</dt><dd id="kvBitrate">—</dd>
-        <dt>Carriers</dt><dd id="kvCarriers">—</dd>
-        <dt>Symbol time</dt><dd id="kvBaud">—</dd>
+        <dt>Frame size</dt><dd id="kvFrameSize"> - </dd>
+        <dt>Encoded payload</dt><dd id="kvEncSize"> - </dd>
+        <dt>Duration</dt><dd id="kvDuration"> - </dd>
+        <dt>Bitrate</dt><dd id="kvBitrate"> - </dd>
+        <dt>Carriers</dt><dd id="kvCarriers"> - </dd>
+        <dt>Symbol time</dt><dd id="kvBaud"> - </dd>
       </div>
 
       <div>
         <div class="field-label">Hex dump <span class="hint">full frame bytes</span></div>
-        <div class="mono-box" id="hexDump">—</div>
+        <div class="mono-box" id="hexDump"> - </div>
       </div>
 
       <div>
         <div class="field-label">Bit-stream <span class="hint">MSB-first</span></div>
-        <div class="mono-box small" id="bitStream">—</div>
+        <div class="mono-box small" id="bitStream"> - </div>
       </div>
 
       <div>
         <div class="field-label">Symbol table <span class="hint">4-FSK &middot; 2 bits / symbol</span></div>
-        <div class="mono-box small" id="symbolTable">—</div>
+        <div class="mono-box small" id="symbolTable"> - </div>
       </div>
 
     </div>
@@ -141,7 +141,7 @@
 
       <!-- BER chart -->
       <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div class="field-label" style="margin:0;">BER sweep — Uncoded vs Hamming(7,4) frame recovery</div>
+        <div class="field-label" style="margin:0;">BER sweep - Uncoded vs Hamming(7,4) frame recovery</div>
         <button class="btn btn-ghost btn-sm" id="btnBerSweep">Run 50-trial SNR Sweep</button>
       </div>
       <div class="canvas-wrap" style="height:200px;">
@@ -162,21 +162,21 @@
     <div class="panel-body">
 
       <div class="kv-grid">
-        <dt>Symbol lock</dt><dd id="kvLock">—</dd>
-        <dt>SNR est.</dt><dd id="kvSnrEst">—</dd>
-        <dt>CRC-16</dt><dd id="kvCrcCheck">—</dd>
-        <dt>Corrections</dt><dd id="kvCorrections">—</dd>
+        <dt>Symbol lock</dt><dd id="kvLock"> - </dd>
+        <dt>SNR est.</dt><dd id="kvSnrEst"> - </dd>
+        <dt>CRC-16</dt><dd id="kvCrcCheck"> - </dd>
+        <dt>Corrections</dt><dd id="kvCorrections"> - </dd>
       </div>
 
       <div>
         <div class="field-label">Raw received bits <span class="hint">green = Hamming-corrected</span></div>
-        <div class="mono-box small" id="rxBits">—</div>
+        <div class="mono-box small" id="rxBits"> - </div>
         <div id="rxBitViz" style="margin-top:6px;"></div>
       </div>
 
       <div>
         <div class="field-label">Hamming(7,4) correction log</div>
-        <div class="mono-box small" id="correctionLog" style="min-height:44px;">No errors — clean channel.</div>
+        <div class="mono-box small" id="correctionLog" style="min-height:44px;">No errors - clean channel.</div>
       </div>
 
       <!-- Classroom card -->
