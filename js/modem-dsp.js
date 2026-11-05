@@ -45,7 +45,7 @@
 
   // Syndrome → bit index to flip (0-6),  -1 = no error
   // s = H * r^T ;  s value maps to column of H
-  const SYNDROME_POS = [-1, 4, 5, 0, 6, 1, 2, 3]; // index by 3-bit syndrome value
+  const SYNDROME_POS = [-1, 6, 5, 3, 4, 2, 1, 0]; // columns of H, MSB-first bit positions
 
   function hammingEncode4bits(nibble) {
     const d0 = (nibble >> 3) & 1, d1 = (nibble >> 2) & 1;
@@ -87,6 +87,7 @@
   }
 
   function hammingDecode(codewords) {
+    if (codewords.length % 2 !== 0) throw new RangeError('Codeword count must be even');
     const out = new Uint8Array(Math.floor(codewords.length / 2));
     const corrections = []; // { byteIdx, nibbleIdx, errorPos }
     for (let i = 0; i < codewords.length; i += 2) {
@@ -100,7 +101,7 @@
   }
 
   // ── Frame builder / parser ────────────────────────────────
-  const PREAMBLE = new Uint8Array([0xAA, 0x55]); // chirp marker bytes
+  const PREAMBLE = new Uint8Array([0xAA, 0x56]); // v2 integrity-after-correction marker
 
   /**
    * Build framed packet bytes:
@@ -108,13 +109,16 @@
    * CRC is over [lenHi lenLo | hamming(payload)] - preamble excluded.
    */
   function buildFrame(payloadBytes) {
+    if (!(payloadBytes instanceof Uint8Array) || payloadBytes.length > 32767) {
+      throw new RangeError('Payload must be bytes with at most 32767 bytes');
+    }
     const encoded = hammingEncode(payloadBytes);
     const len = encoded.length;
     const header = new Uint8Array([PREAMBLE[0], PREAMBLE[1], (len >> 8) & 0xFF, len & 0xFF]);
     // CRC over length + encoded payload
-    const crcData = new Uint8Array(2 + encoded.length);
+    const crcData = new Uint8Array(2 + payloadBytes.length);
     crcData[0] = header[2]; crcData[1] = header[3];
-    crcData.set(encoded, 2);
+    crcData.set(payloadBytes, 2);
     const c = crc16(crcData);
     const tail = new Uint8Array([(c >> 8) & 0xFF, c & 0xFF]);
     const frame = new Uint8Array(header.length + encoded.length + tail.length);
@@ -126,17 +130,18 @@
 
   function parseFrame(frame) {
     if (frame.length < 6) return { ok: false, reason: 'Frame too short' };
-    if (frame[0] !== 0xAA || frame[1] !== 0x55) return { ok: false, reason: 'Bad preamble' };
+    if (frame[0] !== PREAMBLE[0] || frame[1] !== PREAMBLE[1]) return { ok: false, reason: 'Bad or legacy preamble' };
     const len = (frame[2] << 8) | frame[3];
-    if (frame.length < 4 + len + 2) return { ok: false, reason: 'Truncated payload' };
+    if (len % 2 || frame.length !== 4 + len + 2) return { ok: false, reason: 'Invalid payload length' };
     const encoded = frame.slice(4, 4 + len);
     const rxCrc = (frame[4 + len] << 8) | frame[4 + len + 1];
-    const crcData = new Uint8Array(2 + len);
+    if (encoded.some(c => c > 127)) return { ok: false, reason: 'Invalid codeword padding' };
+    const { bytes: payload, corrections } = hammingDecode(encoded);
+    const crcData = new Uint8Array(2 + payload.length);
     crcData[0] = frame[2]; crcData[1] = frame[3];
-    crcData.set(encoded, 2);
+    crcData.set(payload, 2);
     const calcCrc = crc16(crcData);
     const crcOk = rxCrc === calcCrc;
-    const { bytes: payload, corrections } = hammingDecode(encoded);
     return { ok: crcOk, reason: crcOk ? 'OK' : 'CRC mismatch', payload, corrections, len, rxCrc, calcCrc };
   }
 
@@ -237,7 +242,8 @@
       // fade out last 10% of preamble
       const fadeOut = n > preambleSamples - symSamples * 0.2
         ? 0.5 * (1 + Math.cos(Math.PI * (n - (preambleSamples - symSamples * 0.2)) / (symSamples * 0.2))) : 1;
-      pcm[n] = Math.sin(2 * Math.PI * f * t) * 0.88 * fadeIn * fadeOut;
+      const duration = preambleSamples / sr;
+      pcm[n] = Math.sin(2 * Math.PI * (f0 * t + 0.5 * (f1 - f0) * t * t / duration)) * 0.88 * fadeIn * fadeOut;
     }
 
     // Data symbols: MFSK tones with raised-cosine windowing
@@ -281,16 +287,21 @@
 
   // ── Channel simulator: AWGN + multipath echo ─────────────
   // Box-Muller Gaussian
-  let _spare = null;
-  function gaussian() {
-    if (_spare !== null) { const v = _spare; _spare = null; return v; }
+  function seededRandom(seed = 42) {
+    let state = seed >>> 0;
+    return () => { state = (Math.imul(1664525, state) + 1013904223) >>> 0; return state / 4294967296; };
+  }
+  function gaussian(rng) {
     let u, v, s;
-    do { u = Math.random() * 2 - 1; v = Math.random() * 2 - 1; s = u * u + v * v; } while (s >= 1 || s === 0);
+    do { u = rng() * 2 - 1; v = rng() * 2 - 1; s = u * u + v * v; } while (s >= 1 || s === 0);
     const m = Math.sqrt(-2 * Math.log(s) / s);
-    _spare = v * m; return u * m;
+    return u * m;
   }
 
-  function addAWGN(pcm, snrDb) {
+  function addAWGN(pcm, snrDb, rng = seededRandom(42)) {
+    if (!Number.isFinite(snrDb) || snrDb < -100 || snrDb > 100 || !pcm.length) {
+      throw new RangeError('Require nonempty PCM and SNR between -100 and 100 dB');
+    }
     // SNR = 10 log10(Psig / Pnoise)  →  noise power = signal power / 10^(SNR/10)
     let sigPow = 0;
     for (let i = 0; i < pcm.length; i++) sigPow += pcm[i] * pcm[i];
@@ -298,7 +309,7 @@
     const noisePow = sigPow / Math.pow(10, snrDb / 10);
     const noiseStd = Math.sqrt(noisePow);
     const out = new Float32Array(pcm.length);
-    for (let i = 0; i < pcm.length; i++) out[i] = pcm[i] + gaussian() * noiseStd;
+    for (let i = 0; i < pcm.length; i++) out[i] = pcm[i] + gaussian(rng) * noiseStd;
     return out;
   }
 
@@ -314,7 +325,7 @@
   function simulateChannel(pcm, sampleRate, opts) {
     // opts: { snrDb, multipathDelayMs, multipathAtten }
     let out = pcm;
-    if (opts.snrDb != null) out = addAWGN(out, opts.snrDb);
+    if (opts.snrDb != null) out = addAWGN(out, opts.snrDb, seededRandom(opts.seed ?? 42));
     if (opts.multipathDelayMs && opts.multipathAtten) {
       out = addMultipath(out, sampleRate, opts.multipathDelayMs, opts.multipathAtten);
     }
@@ -402,10 +413,25 @@
   }
 
   // ── BER sweep (50 trials × SNR points) ────────────────────
-  async function runBERSweep(payloadStr, profile, snrPoints, trialsPerPoint, onProgress) {
+  function buildUncodedFrame(payload) {
+    const frame = new Uint8Array(payload.length + 6);
+    frame.set([0xAA, 0x57, payload.length >> 8, payload.length & 255]);
+    frame.set(payload, 4);
+    const crc = crc16(frame.slice(2, -2));
+    frame[frame.length - 2] = crc >> 8; frame[frame.length - 1] = crc & 255;
+    return frame;
+  }
+  function parseUncodedFrame(frame) {
+    if (frame.length < 6 || frame[0] !== 0xAA || frame[1] !== 0x57 ||
+        frame.length !== ((frame[2] << 8) | frame[3]) + 6) return false;
+    return crc16(frame.slice(2, -2)) === ((frame[frame.length - 2] << 8) | frame[frame.length - 1]);
+  }
+  async function runBERSweep(payloadStr, profile, snrPoints, trialsPerPoint, onProgress, seed = 42) {
+    if (!Number.isInteger(trialsPerPoint) || trialsPerPoint < 1) throw new RangeError('Trials must be positive');
     const payloadBytes = strToBytes(payloadStr);
     const { frame } = buildFrame(payloadBytes);
     const synth = synthesizePCM(frame, profile);
+    const uncoded = synthesizePCM(buildUncodedFrame(payloadBytes), profile);
     const results = [];
 
     for (let pi = 0; pi < snrPoints.length; pi++) {
@@ -413,39 +439,22 @@
       let uncodedOk = 0, codedOk = 0;
 
       for (let t = 0; t < trialsPerPoint; t++) {
-        const noisy = addAWGN(synth.pcm, snrDb);
+        const trialSeed = (seed + pi * 100003 + t) >>> 0;
+        const noisy = addAWGN(synth.pcm, snrDb, seededRandom(trialSeed));
         const res = demodulate(noisy, profile);
         if (res.parsed.ok) codedOk++;
-        // Uncoded baseline: flip ~BER from AWGN - approximate by checking
-        // raw bit errors vs Hamming correction
-        // For display we use a theoretical uncoded curve blended with measurement
-        // Here we count uncoded success as: no bit errors at all (stricter)
-        // Estimate raw BER from symbol energies vs noise
-        if (res.parsed.ok && res.parsed.corrections.length === 0) uncodedOk++;
+        const raw = addAWGN(uncoded.pcm, snrDb, seededRandom(trialSeed));
+        const rawFrame = bitsToFrame(symbolsToBits(detectSymbols(raw, profile).symbols));
+        if (parseUncodedFrame(rawFrame)) uncodedOk++;
       }
-
-      // Blend measured coded with theoretical uncoded curve for smooth chart
-      // Theoretical uncoded FER ≈ 1 - (1 - Q(sqrt(2*Eb/N0)))^(frameBits)
-      const ebN0Linear = Math.pow(10, snrDb / 10);
-      const qArg = Math.sqrt(2 * ebN0Linear * 0.5); // 4-FSK approx
-      // Q-function approx
-      function qfunc(x) {
-        if (x <= 0) return 0.5;
-        // Abramowitz & Stegun 7.1.26
-        const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741, a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
-        const t2 = 1 / (1 + p * x);
-        return ((((a5 * t2 + a4) * t2 + a3) * t2 + a2) * t2 + a1) * t2 * Math.exp(-x * x);
-      }
-      const rawBer = qfunc(qArg);
-      const frameBits = frame.length * 8;
-      const theoUncodedFer = 1 - Math.pow(1 - rawBer, frameBits);
-      const theoUncodedOk = Math.max(0, Math.min(1, 1 - theoUncodedFer));
 
       results.push({
         snrDb,
         codedRate: codedOk / trialsPerPoint,
-        uncodedRate: theoUncodedOk * 0.92 + (uncodedOk / trialsPerPoint) * 0.08, // blend
-        _measuredUncoded: uncodedOk / trialsPerPoint,
+        uncodedRate: uncodedOk / trialsPerPoint,
+        trials: trialsPerPoint, seed,
+        codedDurationMs: synth.pcm.length / profile.sampleRate * 1000,
+        uncodedDurationMs: uncoded.pcm.length / profile.sampleRate * 1000,
       });
 
       if (onProgress) {
@@ -476,7 +485,7 @@
     strToBytes, bytesToStr, bytesToHex, frameToHexDump, bitStreamStr,
     PROFILES, getDataFreqs, frameToBits, bitsToSymbols,
     synthesizePCM, encodeWAV,
-    addAWGN, addMultipath, simulateChannel,
+    addAWGN, addMultipath, simulateChannel, seededRandom, buildUncodedFrame, parseUncodedFrame,
     goertzelMag, detectSymbols, symbolsToBits, bitsToFrame, demodulate,
     estimateSNR, runBERSweep,
     estimateDurationMs, estimateBitrate,

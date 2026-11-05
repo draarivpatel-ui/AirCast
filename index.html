@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>AirCast - Hyperlocal EPA AQI Telemetry, 48h Respiratory Forecast & Acoustic Data Modem</title>
-<meta name="description" content="Real-time hyperlocal air quality, PM2.5 and PM10 particulate dispersion, ozone, and allergen telemetry dashboard with an interactive EPA AQI exposure calculator, 48-hour respiratory risk forecast, and Web Audio MFSK acoustic emergency broadcast modem." />
+<title>AirCast - Local Acoustic Packets and Illustrative AQI Studio</title>
+<meta name="description" content="Browser-local MFSK acoustic modem with corrected Hamming error recovery, measured channel simulations, and synthetic air-quality examples. No live monitoring or clinical forecast." />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css" />
@@ -30,7 +30,7 @@
 <!-- Hyperlocal Air Quality, EPA AQI Exposure Calculator & 48h Respiratory Risk Forecast Strip -->
 <section class="panel" id="aqi-telemetry-strip" style="margin:12px 16px 0 16px;">
   <div class="panel-head" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-    <h2><span class="dot dot-emerald"></span> Hyperlocal Air Quality, PM2.5/PM10/Ozone/Allergen Telemetry &amp; 48-Hour Respiratory Forecast</h2>
+    <h2><span class="dot dot-emerald"></span> Synthetic Air-Quality Scenarios and Illustrative 48-Hour Curves</h2>
     <div style="display:flex;align-items:center;gap:8px;">
       <select id="aqiStationSelect" style="background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font:12px var(--mono);"></select>
       <button class="btn btn-primary btn-sm" id="btnBroadcastAqi">Broadcast 48h AQI Packet via Acoustic Modem</button>
@@ -38,7 +38,7 @@
   </div>
   <div class="panel-body" style="display:grid;grid-template-columns:1.1fr 1.1fr 1.3fr;gap:14px;align-items:start;">
     <div>
-      <div class="field-label">Station Pollutant Telemetry</div>
+      <div class="field-label">Synthetic Pollutant Examples, Not Live Measurements</div>
       <div class="kv-grid">
         <dt>Composite AQI</dt><dd id="aqiCompositeVal"> - </dd>
         <dt>PM2.5 Dispersion</dt><dd id="aqiPm25Val"> - </dd>
@@ -95,7 +95,8 @@
   <label>Preset payloads</label>
   <button class="chip active" data-preset="quiz">STEM Physics Quiz - EN/ES/HI + LaTeX</button>
   <button class="chip" data-preset="beacon">Emergency Mesh Beacon - GPS + Triage</button>
-  <button class="chip" data-preset="token">Micro-Credential Token - Hamming ECC</button>
+  <button class="chip" data-preset="token">Local Identity Demo - Not an Issued Credential</button>
+  <button class="chip" id="btnSignedIdentity">Generate Anonymous Signed Identity</button>
   <span style="margin-left:auto;font:11px var(--mono);color:var(--text-dim);" id="profileHint">Profile: Audible Classroom Chime</span>
 </div>
 
@@ -273,6 +274,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="js/modem-dsp.js"></script>
+<script src="js/private-packets.js"></script>
 <script src="js/spectrogram.js"></script>
 <script src="js/app.js"></script>
 <script src="js/aqi-telemetry.js"></script>

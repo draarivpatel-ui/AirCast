@@ -4,9 +4,7 @@
   const STATIONS = [
     {
       id: "C8",
-      name: "Houston Aldine (EPA CAMS 8)",
-      lat: 29.901,
-      lon: -95.326,
+      name: "Synthetic Station A",
       pm25: 18.4,
       pm10: 42.0,
       o3_ppb: 68,
@@ -22,9 +20,7 @@
     },
     {
       id: "C35",
-      name: "Deer Park Ship Channel (EPA CAMS 35)",
-      lat: 29.670,
-      lon: -95.128,
+      name: "Synthetic Station B",
       pm25: 26.8,
       pm10: 61.5,
       o3_ppb: 79,
@@ -40,9 +36,7 @@
     },
     {
       id: "C53",
-      name: "Bayland Park Southwest (EPA CAMS 53)",
-      lat: 29.695,
-      lon: -95.499,
+      name: "Synthetic Station C",
       pm25: 13.2,
       pm10: 31.0,
       o3_ppb: 54,
@@ -58,9 +52,7 @@
     },
     {
       id: "C403",
-      name: "Clinton Drive Industrial (EPA CAMS 403)",
-      lat: 29.733,
-      lon: -95.257,
+      name: "Synthetic Station D",
       pm25: 31.5,
       pm10: 78.2,
       o3_ppb: 74,
@@ -234,6 +226,8 @@
         const peak48h = Math.max(...st.forecast48h);
         const packet = JSON.stringify({
           type: "AIRCAST_AQI_TELEMETRY",
+          source: "synthetic fixture",
+          clinical_use: false,
           station: st.id,
           name: st.name,
           aqi: compositeAqi,

@@ -47,8 +47,8 @@
     beacon: JSON.stringify({
       type: "beacon",
       id: "BEACON-0427",
-      gps: { lat: 28.6139, lon: 77.2090, alt_m: 216 },
-      triage: "YELLOW - ambulatory, laceration left arm",
+      station_id: "DEMO-01",
+      triage: "SYNTHETIC - supplies requested",
       message: { en: "Need bandages + water at north gate", es: "Necesito vendas + agua en puerta norte", hi: "उत्तरी गेट पर पट्टियाँ + पानी चाहिए" },
       ts: "2026-11-03T14:30:00Z",
       ttl_hops: 4
@@ -57,10 +57,10 @@
     token: JSON.stringify({
       type: "credential",
       issuer: "AirCast Academy",
-      recipient: "student@aircast.demo",
+      recipient: "anonymous-demo",
       badge: "Acoustic Modem - Level 1",
       issued: "2026-11-03",
-      proof: "HMAC-SHA256 placeholder - replace with real sig in prod",
+      proof: "Unsigned example, not an authenticated identity",
       ecc: "Hamming(7,4) protected payload"
     }, null, 2),
   };
@@ -76,6 +76,13 @@
     berChart = new Viz.BERChart($('#berCanvas'));
 
     bindEvents();
+    $('#btnSignedIdentity')?.addEventListener('click', async () => {
+      try {
+        const credential = await window.AirCastPrivacy.createCredential();
+        applyPayload(JSON.stringify({ type: "signed_identity", credential }), 'token');
+        toast('Anonymous identity signed locally. No personal fields or persistence.');
+      } catch (_) { toast('WebCrypto identity requires a supported secure context'); }
+    });
     applyPayload(PRESETS.quiz, 'quiz');
     setProfile('audible');
     onResize();
@@ -368,7 +375,7 @@
     renderClassroomCard(result.payloadStr, p && p.ok);
   }
 
-  function renderClassroomCard(payloadStr, crcOk) {
+  async function renderClassroomCard(payloadStr, crcOk) {
     const card = $('#classroomCard');
     if (!payloadStr || !crcOk) {
       $('#cardTitle').textContent = 'Classroom Receiver';
@@ -415,6 +422,14 @@
           else { el.classList.add('wrong'); const correct = $(`#cardQuiz .quiz-opt[data-idx="${ans2}"]`); if (correct) correct.classList.add('correct'); }
         });
       });
+    } else if (obj.type === 'signed_identity') {
+      $('#cardTitle').textContent = 'Anonymous Local Identity';
+      $('#cardBadge').textContent = 'Checking signature';
+      $('#cardBody').textContent = JSON.stringify(obj.credential, null, 2);
+      $('#cardQuiz').innerHTML = '';
+      const valid = await window.AirCastPrivacy.verifyCredential(obj.credential);
+      $('#cardBadge').textContent = valid ? 'Local signature valid' : 'Invalid signature';
+      $('#cardBadge').className = valid ? 'badge badge-ok' : 'badge badge-err';
     } else if (obj.type === 'beacon') {
       $('#cardTitle').textContent = '🚨 Emergency Beacon - ' + escHtml(obj.id || '');
       $('#cardBadge').textContent = 'Beacon ✓';
@@ -432,7 +447,7 @@
       $('#cardQuiz').innerHTML = '';
     } else if (obj.type === 'credential') {
       $('#cardTitle').textContent = '🔐 ' + escHtml(obj.badge || 'Credential');
-      $('#cardBadge').textContent = 'Token ✓';
+      $('#cardBadge').textContent = 'Unsigned example';
       $('#cardBadge').className = 'badge badge-ok';
       $('#cardBody').innerHTML = `
         <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font:11px var(--mono);">
