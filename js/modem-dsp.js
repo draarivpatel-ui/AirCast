@@ -168,7 +168,7 @@
       id: 'audible',
       label: 'Audible Classroom Chime',
       freqs: [1850, 2250, 2650, 3100, 3550, 4000], // 6-FSK carriers (Hz)
-      baudMs: 90,          // symbol duration
+      baudMs: 12,          // simulated fast 4-FSK symbol duration
       preambleMs: 220,     // chirp duration
       sampleRate: 44100,
     },
@@ -176,7 +176,7 @@
       id: 'ultrasonic',
       label: 'Near-Ultrasonic Whisper',
       freqs: [16500, 17000, 17500, 18000, 18600, 19200],
-      baudMs: 70,
+      baudMs: 14,
       preambleMs: 180,
       sampleRate: 48000,
     },
@@ -184,7 +184,7 @@
       id: 'stress',
       label: 'Noisy Multipath Stress-Test',
       freqs: [1850, 2250, 2650, 3100, 3550, 4000],
-      baudMs: 90,
+      baudMs: 12,
       preambleMs: 220,
       sampleRate: 44100,
     },
@@ -220,6 +220,12 @@
 
   // ── PCM Synthesis (raised-cosine windowing) ──────────────
   function synthesizePCM(frame, profile) {
+    if (!profile || !Number.isSafeInteger(profile.sampleRate) || profile.sampleRate < 8000 || profile.sampleRate > 96000 ||
+        !Number.isFinite(profile.baudMs) || profile.baudMs < 1 || profile.baudMs > 1000 ||
+        !Number.isFinite(profile.preambleMs) || profile.preambleMs < 1 || profile.preambleMs > 1000 ||
+        !Array.isArray(profile.freqs) || profile.freqs.length !== 6 ||
+        !profile.freqs.every(f => Number.isFinite(f) && f > 0 && f < profile.sampleRate / 2))
+      throw new RangeError('Invalid or aliased acoustic profile');
     const sr = profile.sampleRate;
     const symSamples = Math.round((profile.baudMs / 1000) * sr);
     const preambleSamples = Math.round((profile.preambleMs / 1000) * sr);
@@ -228,6 +234,8 @@
     const symbols = bitsToSymbols(bits);
 
     const totalSamples = preambleSamples + symbols.length * symSamples;
+    if (!Number.isSafeInteger(totalSamples) || totalSamples > 20000000)
+      throw new RangeError('Waveform exceeds the bounded 20-million-sample synthesizer');
     const pcm = new Float32Array(totalSamples);
 
     // Preamble: linear chirp from freqs[0] to freqs[5]

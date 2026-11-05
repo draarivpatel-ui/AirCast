@@ -34,7 +34,7 @@
   }
   async function createBoundary() {
     const key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
-    const seen = new Set();
+    const seen = new Set(), pending = new Set();
     return {
       async seal(packet) {
         if (!validatePacket(packet)) throw new Error("Closed packet schema rejected");
@@ -47,16 +47,22 @@
       async open(envelope) {
         if (!envelope || JSON.stringify(Object.keys(envelope).sort()) !== JSON.stringify(["ciphertext", "nonce"]) ||
             typeof envelope.nonce !== "string" || typeof envelope.ciphertext !== "string" ||
-            envelope.ciphertext.length > 4096 || seen.has(envelope.nonce) || seen.size >= 10000)
+            envelope.ciphertext.length > 4096 || envelope.nonce.length > 24)
           throw new Error("Malformed, replayed or capacity-limited packet");
         const nonce = unb64(envelope.nonce);
         if (nonce.length !== 12) throw new Error("Invalid nonce");
-        const clear = await crypto.subtle.decrypt(
-          { name: "AES-GCM", iv: nonce, additionalData: encoder.encode("AirCast-v2") }, key, unb64(envelope.ciphertext));
-        const packet = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(clear));
-        if (!validatePacket(packet)) throw new Error("Closed packet schema rejected");
-        seen.add(envelope.nonce);
-        return packet;
+        const nonceId = b64(nonce);
+        if (envelope.nonce !== nonceId || seen.has(nonceId) || pending.has(nonceId) || seen.size + pending.size >= 10000)
+          throw new Error("Noncanonical, replayed or capacity-limited packet");
+        pending.add(nonceId);
+        try {
+          const clear = await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: nonce, additionalData: encoder.encode("AirCast-v2") }, key, unb64(envelope.ciphertext));
+          const packet = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(clear));
+          if (!validatePacket(packet)) throw new Error("Closed packet schema rejected");
+          seen.add(nonceId);
+          return packet;
+        } finally { pending.delete(nonceId); }
       },
     };
   }

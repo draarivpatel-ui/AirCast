@@ -42,6 +42,12 @@ test("seeded noise is byte-for-byte reproducible", () => {
   const pcm = Float32Array.from([0.1, 0.2, 0.3, -0.4]);
   assert.deepEqual(dsp.addAWGN(pcm, 0, dsp.seededRandom(0)), dsp.addAWGN(pcm, 0, dsp.seededRandom(0)));
 });
+test("waveform profiles and memory bounds reject invalid requests", () => {
+  const frame = dsp.buildFrame(dsp.strToBytes("hi")).frame;
+  assert.throws(() => dsp.synthesizePCM(frame, {...dsp.PROFILES.audible, baudMs: -1}));
+  assert.throws(() => dsp.synthesizePCM(frame, {...dsp.PROFILES.audible, freqs: [1,2,3,4,5,99999]}));
+  assert.throws(() => dsp.synthesizePCM(dsp.buildFrame(new Uint8Array(32767)).frame, dsp.PROFILES.audible));
+});
 for (const profile of ["audible", "ultrasonic", "stress"]) {
   test("real PCM synthesis and Goertzel loopback " + profile, () => {
     const pcm = dsp.synthesizePCM(dsp.buildFrame(dsp.strToBytes("hi")).frame, dsp.PROFILES[profile]);

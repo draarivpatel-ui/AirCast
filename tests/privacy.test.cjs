@@ -27,3 +27,10 @@ test("anonymous Ed25519 identity is signed and tampering is rejected", async () 
   assert.equal(Object.hasOwn(credential, "name"), false);
   assert.equal(Object.hasOwn(credential, "email"), false);
 });
+test("concurrent receives and alternate nonce encodings cannot bypass replay checks", async () => {
+  const boundary = await privacy.createBoundary();
+  const wire = await boundary.seal(packet);
+  const responses = await Promise.allSettled([boundary.open(wire), boundary.open(wire)]);
+  assert.equal(responses.filter(r => r.status === "fulfilled").length, 1);
+  await assert.rejects(boundary.open({...wire, nonce: " " + wire.nonce}));
+});

@@ -56,7 +56,7 @@
 
     token: JSON.stringify({
       type: "credential",
-      issuer: "AirCast Academy",
+      issuer: "Local Example Session",
       recipient: "anonymous-demo",
       badge: "Acoustic Modem - Level 1",
       issued: "2026-11-03",
@@ -113,6 +113,14 @@
   }
 
   function rebuildPacket() {
+    try { rebuildPacketUnchecked(); }
+    catch (_) {
+      currentFrame = null; currentPCM = null;
+      $('#payloadBytesHint').textContent = 'Payload exceeds the bounded local waveform profile';
+    }
+  }
+
+  function rebuildPacketUnchecked() {
     const text = $('#payloadInput').value;
     const bytes = DSP.strToBytes(text);
     const { frame, encoded, crc } = DSP.buildFrame(bytes);
@@ -375,7 +383,9 @@
     renderClassroomCard(result.payloadStr, p && p.ok);
   }
 
+  let cardGeneration = 0;
   async function renderClassroomCard(payloadStr, crcOk) {
+    const generation = ++cardGeneration;
     const card = $('#classroomCard');
     if (!payloadStr || !crcOk) {
       $('#cardTitle').textContent = 'Classroom Receiver';
@@ -390,13 +400,20 @@
     try { obj = JSON.parse(payloadStr); } catch (_) {
       // Plain text
       $('#cardTitle').textContent = 'Decoded Text';
-      $('#cardBadge').textContent = '✓ Verified';
+      $('#cardBadge').textContent = 'CRC integrity passed';
       $('#cardBadge').className = 'badge badge-ok';
       $('#cardBody').innerHTML = `<p style="color:var(--text);white-space:pre-wrap;word-break:break-word;">${escHtml(payloadStr)}</p>`;
       $('#cardQuiz').innerHTML = '';
       return;
     }
 
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+      $('#cardTitle').textContent = 'Decoded JSON value';
+      $('#cardBadge').textContent = 'CRC integrity passed';
+      $('#cardBody').textContent = JSON.stringify(obj);
+      $('#cardQuiz').innerHTML = '';
+      return;
+    }
     if (obj.type === 'quiz') {
       $('#cardTitle').textContent = getLocalized(obj.title);
       $('#cardBadge').textContent = 'Quiz Packet ✓';
@@ -409,7 +426,7 @@
         ${hint ? `<p style="font-size:11px;color:var(--text-dim);">💡 ${escHtml(hint)}</p>` : ''}
       `;
       const opts = getLocalizedArray(obj.options);
-      const ans = obj.answer;
+      const ans = Number.isInteger(obj.answer) && obj.answer >= 0 && obj.answer < opts.length ? obj.answer : -1;
       $('#cardQuiz').innerHTML = opts.map((o, i) =>
         `<div class="quiz-opt" data-idx="${i}" data-ans="${ans}"><span class="qo-letter">${String.fromCharCode(65 + i)}</span><span>${escHtml(o)}</span></div>`
       ).join('');
@@ -428,6 +445,7 @@
       $('#cardBody').textContent = JSON.stringify(obj.credential, null, 2);
       $('#cardQuiz').innerHTML = '';
       const valid = await window.AirCastPrivacy.verifyCredential(obj.credential);
+      if (generation !== cardGeneration) return;
       $('#cardBadge').textContent = valid ? 'Local signature valid' : 'Invalid signature';
       $('#cardBadge').className = valid ? 'badge badge-ok' : 'badge badge-err';
     } else if (obj.type === 'beacon') {
@@ -437,9 +455,9 @@
       const msg = obj.message ? getLocalized(obj.message) : '';
       $('#cardBody').innerHTML = `
         <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font:11px var(--mono);">
-          <span style="color:var(--text-muted)">GPS</span><span>${obj.gps ? obj.gps.lat + ', ' + obj.gps.lon + ' · ' + obj.gps.alt_m + ' m' : ' - '}</span>
+          <span style="color:var(--text-muted)">GPS</span><span>${escHtml(obj.gps ? obj.gps.lat + ', ' + obj.gps.lon + ' · ' + obj.gps.alt_m + ' m' : ' - ')}</span>
           <span style="color:var(--text-muted)">Triage</span><span style="color:var(--amber);font-weight:700;">${escHtml(obj.triage || ' - ')}</span>
-          <span style="color:var(--text-muted)">TTL</span><span>${obj.ttl_hops ?? ' - '} hops</span>
+          <span style="color:var(--text-muted)">TTL</span><span>${escHtml(obj.ttl_hops ?? ' - ')} hops</span>
           <span style="color:var(--text-muted)">Time</span><span>${escHtml(obj.ts || ' - ')}</span>
         </div>
         ${msg ? `<p style="margin-top:8px;color:var(--text);">“${escHtml(msg)}”</p>` : ''}
@@ -461,7 +479,7 @@
       $('#cardQuiz').innerHTML = '';
     } else {
       $('#cardTitle').textContent = 'Decoded JSON';
-      $('#cardBadge').textContent = '✓ Verified';
+      $('#cardBadge').textContent = 'CRC integrity passed';
       $('#cardBadge').className = 'badge badge-ok';
       $('#cardBody').innerHTML = `<pre style="font:11px var(--mono);white-space:pre-wrap;word-break:break-word;color:var(--text);margin:0;">${escHtml(JSON.stringify(obj, null, 2))}</pre>`;
       $('#cardQuiz').innerHTML = '';
@@ -476,7 +494,8 @@
   function getLocalizedArray(map) {
     if (Array.isArray(map)) return map;
     if (!map || typeof map !== 'object') return [];
-    return map[currentLang] || map.en || Object.values(map)[0] || [];
+    const candidate = map[currentLang] || map.en || Object.values(map)[0];
+    return Array.isArray(candidate) ? candidate : [];
   }
   function escHtml(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
