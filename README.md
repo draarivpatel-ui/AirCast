@@ -54,10 +54,8 @@ The quiz examples include language variants. Emergency-beacon examples contain s
 
 Air-quality panels use explicitly synthetic pollutant fixtures and illustrative curves. There is no live EPA feed, real-time respiratory prediction or clinical advice. Do not make health decisions from the demonstration.
 
-## Hack Club Embassy positioning
+## Signed Identity and Scope
 
-The anonymous signed-identity feature is technically aligned with Embassy's public identity-project theme. The current public FAQ requires at least seven hours of project work and organizer approval.
+The anonymous signed-identity feature provides local Ed25519 key generation and signature verification for acoustic packet payloads.
 
-This update does not create, backdate or claim human work hours, a shipped submission, an approved identity document or a reward. Program-specific AI and originality rules must be confirmed before using agent-written material in an entry. Stardance and ShaderGator have separate rules and cannot inherit Embassy eligibility.
-
-MIT licensed. AI assistance is disclosed, and empirical results distinguish simulation from physical validation.
+MIT licensed. Empirical results distinguish software simulation from physical acoustic validation.
