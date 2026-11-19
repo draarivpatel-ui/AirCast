@@ -355,15 +355,9 @@
 
     // Bit viz
     const bits = result.bits || [];
-    let bitHtml = bits.slice(0, 400).map((b, i) => {
-      // Check if this bit was part of a corrected codeword
-      const byteIdx = Math.floor(i / 8);
-      const isCorrected = p && p.corrections && p.corrections.some(c => {
-        // correction byteIdx refers to encoded payload index; approximate
-        return false; // per-bit highlight via correction log instead
-      });
-      return `<span class="bit ${b ? 'bit-1' : 'bit-0'}">${b}</span>`;
-    }).join('');
+    let bitHtml = bits.slice(0, 400).map(b =>
+      `<span class="bit ${b ? 'bit-1' : 'bit-0'}">${b}</span>`
+    ).join('');
     if (bits.length > 400) bitHtml += `<span style="font:11px var(--mono);color:var(--text-dim);margin-left:6px;">+${bits.length - 400} bits</span>`;
     $('#rxBitViz').innerHTML = `<div class="bit-row">${bitHtml}</div>`;
     $('#rxBits').textContent = bits.slice(0, 600).join('') + (bits.length > 600 ? ' …' : '') || ' - ';
@@ -386,7 +380,6 @@
   let cardGeneration = 0;
   async function renderClassroomCard(payloadStr, crcOk) {
     const generation = ++cardGeneration;
-    const card = $('#classroomCard');
     if (!payloadStr || !crcOk) {
       $('#cardTitle').textContent = 'Classroom Receiver';
       $('#cardBadge').textContent = crcOk === false ? 'CRC failed' : 'No packet';
@@ -608,10 +601,7 @@
     $$('#langTabs .lang-tab').forEach(t => t.addEventListener('click', () => {
       currentLang = t.dataset.lang;
       $$('#langTabs .lang-tab').forEach(x => x.classList.toggle('active', x === t));
-      // Re-render card if we have a decoded payload
-      const text = $('#payloadInput').value;
       // Re-render from last decoded if available
-      // Simplest: rebuild from current input's decoded view
       // We stash last result globally
       if (window._lastDemodResult) renderClassroomCard(window._lastDemodResult.payloadStr, window._lastDemodResult.parsed.ok);
     }));

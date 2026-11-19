@@ -8,10 +8,6 @@
 
   // ── Helpers ───────────────────────────────────────────────
 
-  function cssVar(name) {
-    return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || name;
-  }
-
   function resizeCanvas(canvas, dpr) {
     dpr = dpr || window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
@@ -47,7 +43,7 @@
 
     draw() {
       const c = this.canvas, ctx = this.ctx;
-      const { w, h, dpr } = resizeCanvas(c);
+      const { dpr } = resizeCanvas(c);
       ctx.save();
       ctx.scale(dpr, dpr);
       const W = c.getBoundingClientRect().width;
@@ -79,8 +75,6 @@
 
       // Draw waveform - downsample to screen width
       const pcm = this.pcm;
-      const step = Math.max(1, Math.floor(pcm.length / W / 1.2));
-
       ctx.strokeStyle = '#06B6D4';
       ctx.lineWidth = 1.1;
       ctx.shadowColor = 'rgba(6,182,212,0.55)';
@@ -88,12 +82,6 @@
       ctx.beginPath();
       for (let x = 0; x < W; x++) {
         const idx = Math.floor((x / W) * pcm.length);
-        // min/max in window for envelope
-        let mn = 1, mx = -1;
-        for (let k = 0; k < step && idx + k < pcm.length; k++) {
-          const v = pcm[idx + k];
-          if (v < mn) mn = v; if (v > mx) mx = v;
-        }
         const y = H / 2 - ((pcm[idx] || 0) * (H * 0.42));
         if (x === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
@@ -197,7 +185,7 @@
 
     drawStatic() {
       const c = this.canvas, ctx = this.ctx;
-      const { w, h, dpr } = resizeCanvas(c);
+      const { dpr } = resizeCanvas(c);
       ctx.save();
       ctx.scale(dpr, dpr);
       const W = c.getBoundingClientRect().width;
@@ -286,7 +274,7 @@
 
     draw() {
       const c = this.canvas, ctx = this.ctx;
-      const { w, h, dpr } = resizeCanvas(c);
+      const { dpr } = resizeCanvas(c);
       ctx.save();
       ctx.scale(dpr, dpr);
       const W = c.getBoundingClientRect().width;
@@ -350,23 +338,6 @@
       ctx.restore();
 
       // lines
-      function drawLine(key, color, width) {
-        ctx.strokeStyle = color;
-        ctx.lineWidth = width;
-        ctx.lineJoin = 'round';
-        ctx.beginPath();
-        for (let i = 0; i < c.data.length; i++) {
-          const x = sx(c.data[i].snrDb), y = sy(c.data[i][key]);
-          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-        // dots
-        ctx.fillStyle = color;
-        for (let i = 0; i < c.data.length; i++) {
-          const x = sx(c.data[i].snrDb), y = sy(c.data[i][key]);
-          ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2); ctx.fill();
-        }
-      }
       const self = this;
       // bind for closure
       (function () {
