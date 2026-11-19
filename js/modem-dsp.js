@@ -242,9 +242,6 @@
     const f0 = profile.freqs[0], f1 = profile.freqs[profile.freqs.length - 1];
     for (let n = 0; n < preambleSamples; n++) {
       const t = n / sr;
-      const frac = n / preambleSamples;
-      const f = f0 + (f1 - f0) * frac;
-      const env = 0.5 * (1 - Math.cos(Math.PI * Math.min(1, n / (symSamples * 0.3))));
       // fade in for first 30% of preamble
       const fadeIn = n < symSamples * 0.3 ? 0.5 * (1 - Math.cos(Math.PI * n / (symSamples * 0.3))) : 1;
       // fade out last 10% of preamble
