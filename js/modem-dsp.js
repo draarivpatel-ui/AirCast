@@ -487,14 +487,14 @@
   }
 
   global.AirCastDSP = {
-    crc16, CRC16_TABLE,
+    crc16,
     hammingEncode4bits, hammingDecode7bits, hammingEncode, hammingDecode,
-    PREAMBLE, buildFrame, parseFrame,
-    strToBytes, bytesToStr, bytesToHex, frameToHexDump, bitStreamStr,
+    buildFrame, parseFrame,
+    strToBytes, bytesToStr, frameToHexDump, bitStreamStr,
     PROFILES, getDataFreqs, frameToBits, bitsToSymbols,
     synthesizePCM, encodeWAV,
-    addAWGN, addMultipath, simulateChannel, seededRandom, buildUncodedFrame, parseUncodedFrame,
-    goertzelMag, detectSymbols, symbolsToBits, bitsToFrame, demodulate,
+    addAWGN, simulateChannel, seededRandom,
+    demodulate,
     estimateSNR, runBERSweep,
     estimateDurationMs, estimateBitrate,
   };

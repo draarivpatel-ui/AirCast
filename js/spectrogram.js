@@ -422,6 +422,6 @@
     }
   }
 
-  global.AirCastViz = { Oscilloscope, Waterfall, BERChart, resizeCanvas };
+  global.AirCastViz = { Oscilloscope, Waterfall, BERChart };
 
 })(typeof window !== 'undefined' ? window : globalThis);
